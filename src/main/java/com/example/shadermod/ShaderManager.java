@@ -30,6 +30,7 @@ public class ShaderManager {
         // Load built-in shaders
         loadShader("vibrant");
         loadShader("cel_shading");
+        loadShader("pbr_basic");
     }
     
     public void loadShader(String name) {
