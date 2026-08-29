@@ -4,7 +4,7 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 
 public class ShaderConfig {
     public static final ModConfigSpec CLIENT_SPEC;
-    public static final ShaderConfig.Client CLIENT;
+    public static final Client CLIENT;
     
     public static class Client {
         public final ModConfigSpec.BooleanValue enableShaders;

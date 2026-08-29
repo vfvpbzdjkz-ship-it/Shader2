@@ -1,6 +1,5 @@
 package com.example.shadermod;
 
-import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
@@ -11,6 +10,7 @@ import org.lwjgl.opengl.GL20;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -27,11 +27,13 @@ public class ShaderManager {
     public void initialize() {
         this.resourceManager = Minecraft.getInstance().getResourceManager();
         
-        // Load built-in shaders
+        // Load built-in shaders from the mod's resources
         loadShader("vibrant");
         loadShader("cel_shading");
         loadShader("pbr_basic");
         loadShader("ultra_realistic");
+        
+        System.out.println("[ShaderMod] ShaderManager initialized with " + shaders.size() + " shaders");
     }
     
     public void loadShader(String name) {
@@ -45,9 +47,11 @@ public class ShaderManager {
             if (vertexShader != null && fragmentShader != null) {
                 ShaderProgram program = new ShaderProgram(name, vertexShader, fragmentShader);
                 shaders.put(name, program);
-                System.out.println("[ShaderMod] Loaded shader: " + name);
+                System.out.println("[ShaderMod] Successfully loaded shader: " + name);
             } else {
                 System.err.println("[ShaderMod] Failed to load shader sources for: " + name);
+                System.err.println("[ShaderMod]   Vertex: " + (vertexShader != null ? "OK" : "MISSING"));
+                System.err.println("[ShaderMod]   Fragment: " + (fragmentShader != null ? "OK" : "MISSING"));
             }
         } catch (Exception e) {
             System.err.println("[ShaderMod] Error loading shader " + name + ": " + e.getMessage());
@@ -57,9 +61,9 @@ public class ShaderManager {
     
     private String loadShaderSource(ResourceLocation location) {
         try {
-            var resource = resourceManager.getResource(location);
+            InputStream stream = resourceManager.getResource(location).open();
             try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(resource.open(), StandardCharsets.UTF_8)
+                new InputStreamReader(stream, StandardCharsets.UTF_8)
             )) {
                 return reader.lines().collect(Collectors.joining("\n"));
             }
@@ -81,11 +85,15 @@ public class ShaderManager {
         ShaderProgram program = shaders.get(name);
         if (program != null) {
             program.use();
+            System.out.println("[ShaderMod] Applied shader: " + name);
+        } else {
+            System.err.println("[ShaderMod] Cannot apply shader " + name + " - not found!");
         }
     }
     
     public void releaseShader() {
-        GlStateManager._setShader(() -> 0);
+        GL20.glUseProgram(0);
+        System.out.println("[ShaderMod] Released shader");
     }
     
     public void renderWithShader(String shaderName, Runnable renderTask) {
@@ -102,6 +110,11 @@ public class ShaderManager {
     public void cleanup() {
         shaders.values().forEach(ShaderProgram::cleanup);
         shaders.clear();
+        System.out.println("[ShaderMod] Cleaned up shaders");
+    }
+    
+    public int getLoadedShaderCount() {
+        return shaders.size();
     }
     
     // Inner class representing a compiled shader program

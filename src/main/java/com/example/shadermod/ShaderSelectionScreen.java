@@ -3,7 +3,6 @@ package com.example.shadermod;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -14,7 +13,6 @@ public class ShaderSelectionScreen extends Screen {
     
     private final Screen parentScreen;
     private final ShaderManager shaderManager;
-    private List<Button> shaderButtons;
     private Button enableToggleButton;
     private Button doneButton;
     
@@ -39,7 +37,7 @@ public class ShaderSelectionScreen extends Screen {
     }
     
     public ShaderSelectionScreen(Screen parentScreen) {
-        super(Component.literal("ShaderMod - Select Shader"));
+        super(Component.literal("Shader Selection"));
         this.parentScreen = parentScreen;
         this.shaderManager = ShaderMod.getInstance() != null ? ShaderMod.getInstance().getShaderManager() : null;
     }
@@ -53,8 +51,7 @@ public class ShaderSelectionScreen extends Screen {
         int spacing = 25;
         
         // Title
-        this.addRenderableWidget(new StringWidget(centerX - 100, startY - 40, 200, 20, 
-            Component.literal("ShaderMod 2 - Shader Selection"), this.font));
+        // We'll use a simple text draw instead of StringWidget for compatibility
         
         // Enable/Disable toggle
         boolean enabled = ShaderConfig.areShadersEnabled();
@@ -64,8 +61,21 @@ public class ShaderSelectionScreen extends Screen {
                 boolean newEnabled = !ShaderConfig.areShadersEnabled();
                 ShaderConfig.setShadersEnabled(newEnabled);
                 enableToggleButton.setMessage(Component.literal(newEnabled ? "Shaders: ON" : "Shaders: OFF"));
+                
+                // Apply immediately
+                if (shaderManager != null) {
+                    if (newEnabled) {
+                        ShaderConfig.ShaderType selected = ShaderConfig.getSelectedShader();
+                        String shaderName = convertToInternalName(selected);
+                        if (shaderName != null && !shaderName.equals("none")) {
+                            shaderManager.applyShader(shaderName);
+                        }
+                    } else {
+                        shaderManager.releaseShader();
+                    }
+                }
             }
-        ).pos(centerX - buttonWidth / 2, startY - 20).size(buttonWidth, buttonHeight).build());
+        ).pos(centerX - buttonWidth / 2, startY - 30).size(buttonWidth, buttonHeight).build());
         
         // Shader buttons
         int yPos = startY;
@@ -78,10 +88,7 @@ public class ShaderSelectionScreen extends Screen {
                     ShaderConfig.ShaderType selectedType = convertToShaderType(shaderName);
                     ShaderConfig.setSelectedShader(selectedType);
                     
-                    // Update button appearances
-                    updateButtonStates();
-                    
-                    // Apply the shader immediately if shaders are enabled
+                    // Apply immediately if shaders are enabled
                     if (ShaderConfig.areShadersEnabled() && shaderManager != null) {
                         if (shaderName.equals("none")) {
                             shaderManager.releaseShader();
@@ -100,9 +107,6 @@ public class ShaderSelectionScreen extends Screen {
             Component.literal("Done"),
             button -> this.onClose()
         ).pos(centerX - buttonWidth / 2, yPos + 20).size(buttonWidth, buttonHeight).build());
-        
-        // Update button states based on current selection
-        updateButtonStates();
     }
     
     private ShaderConfig.ShaderType convertToShaderType(String shaderName) {
@@ -115,15 +119,8 @@ public class ShaderSelectionScreen extends Screen {
         }
     }
     
-    private void updateButtonStates() {
-        ShaderConfig.ShaderType selected = ShaderConfig.getSelectedShader();
-        String selectedName = convertToInternalName(selected);
-        
-        // Update all shader button messages to show selection state
-        // Note: In a real implementation, we'd track the buttons and update their appearance
-    }
-    
     private String convertToInternalName(ShaderConfig.ShaderType type) {
+        if (type == null) return "none";
         switch (type) {
             case VIBRANT: return "vibrant";
             case CEL_SHADING: return "cel_shading";
@@ -142,13 +139,16 @@ public class ShaderSelectionScreen extends Screen {
     
     @Override
     public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTicks) {
+        // Render background
         this.renderBackground(poseStack);
         
+        // Render buttons
         super.render(poseStack, mouseX, mouseY, partialTicks);
         
-        // Draw additional info
+        // Draw title
         int centerX = this.width / 2;
         int startY = this.height / 4;
+        this.font.draw(poseStack, "ShaderMod 2 - Shader Selection", centerX - 100, startY - 50, 0xFFFFFF);
         
         // Draw descriptions when hovering over shader buttons
         for (int i = 0; i < SHADERS.size(); i++) {
@@ -164,7 +164,12 @@ public class ShaderSelectionScreen extends Screen {
         
         // Draw current selection info
         ShaderConfig.ShaderType selected = ShaderConfig.getSelectedShader();
-        String selectedName = selected.toString().charAt(0) + selected.toString().substring(1).toLowerCase();
+        String selectedName = selected.toString().charAt(0) + selected.toString().substring(1).toLowerCase().replace("_", " ");
         this.font.draw(poseStack, "Selected: " + selectedName, centerX - 100, startY + 120, 0xFFFFFF);
+        
+        // Draw shader count
+        if (shaderManager != null) {
+            this.font.draw(poseStack, "Loaded: " + shaderManager.getLoadedShaderCount() + " shaders", centerX - 100, startY + 140, 0xAAAAAA);
+        }
     }
 }

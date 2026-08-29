@@ -8,6 +8,10 @@ import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.settings.KeyConflictContext;
+import net.neoforged.neoforge.common.NeoForge;
+import org.lwjgl.glfw.GLFW;
 
 @Mod(ShaderMod.MODID)
 public class ShaderMod {
@@ -15,6 +19,9 @@ public class ShaderMod {
     
     private static ShaderMod instance;
     private ShaderManager shaderManager;
+    
+    // Key binding for opening shader selection screen
+    // We'll use 'S' key by default (can be changed in controls)
     
     public ShaderMod() {
         instance = this;
@@ -24,6 +31,8 @@ public class ShaderMod {
         
         // Register config
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ShaderConfig.CLIENT_SPEC);
+        
+        System.out.println("[ShaderMod] Constructor - Mod initialized");
     }
     
     private void commonSetup(final FMLCommonSetupEvent event) {
@@ -32,9 +41,10 @@ public class ShaderMod {
     
     private void clientSetup(final FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
+            System.out.println("[ShaderMod] Starting client setup...");
             shaderManager = new ShaderManager();
             shaderManager.initialize();
-            System.out.println("[ShaderMod] Client setup complete - shaders loaded");
+            System.out.println("[ShaderMod] Client setup complete - " + shaderManager.getLoadedShaderCount() + " shaders loaded");
             
             // Apply the configured shader
             applyConfiguredShader();
@@ -42,17 +52,21 @@ public class ShaderMod {
     }
     
     private void applyConfiguredShader() {
-        if (shaderManager != null && ShaderConfig.areShadersEnabled()) {
+        if (shaderManager != null) {
             ShaderConfig.ShaderType selected = ShaderConfig.getSelectedShader();
             String shaderName = convertShaderType(selected);
-            if (shaderName != null && !shaderName.equals("none")) {
+            
+            if (ShaderConfig.areShadersEnabled() && shaderName != null && !shaderName.equals("none")) {
                 shaderManager.applyShader(shaderName);
-                System.out.println("[ShaderMod] Applied shader: " + shaderName);
+                System.out.println("[ShaderMod] Applied configured shader: " + shaderName);
+            } else {
+                System.out.println("[ShaderMod] No shader applied (disabled or none selected)");
             }
         }
     }
     
     private String convertShaderType(ShaderConfig.ShaderType type) {
+        if (type == null) return "none";
         switch (type) {
             case VIBRANT: return "vibrant";
             case CEL_SHADING: return "cel_shading";
