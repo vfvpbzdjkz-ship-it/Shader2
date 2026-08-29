@@ -13,7 +13,8 @@ echo.
 set "DESTINATION=%USERPROFILE%\Desktop\ShaderMod2"
 set "MODS_FOLDER=%USERPROFILE%\AppData\Roaming\PrismLauncher\instances\1.20.4\minecraft\mods"
 set "REPO_URL=https://github.com/vfvpbzdjkz-ship-it/Shader2"
-set "TEMP_ZIP=%TEMP%\shadermod-repo.zip"
+set "GRADLE_WRAPPER_URL=https://raw.githubusercontent.com/gradle/gradle/v8.4/gradle/wrapper/gradle-wrapper.jar"
+set "GRADLE_WRAPPER_BAT_URL=https://raw.githubusercontent.com/gradle/gradle/v8.4/gradle/wrapper/gradle-wrapper.bat"
 
 echo Checking prerequisites...
 
@@ -62,10 +63,10 @@ if %ERRORLEVEL% EQU 0 (
     git clone %REPO_URL% "%DESTINATION%\Shader2" 2>nul
 ) else (
     echo Downloading repository as ZIP...
-    powershell -command "(New-Object Net.WebClient).DownloadFile('%REPO_URL%/archive/refs/heads/main.zip', '%TEMP_ZIP%')"
+    powershell -command "(New-Object Net.WebClient).DownloadFile('%REPO_URL%/archive/refs/heads/main.zip', '%TEMP%\shadermod-repo.zip')"
     
     :: Check if download succeeded
-    if not exist "%TEMP_ZIP%" (
+    if not exist "%TEMP%\shadermod-repo.zip" (
         echo.
         echo ERROR: Failed to download repository!
         echo Check your internet connection.
@@ -74,7 +75,7 @@ if %ERRORLEVEL% EQU 0 (
     )
     
     echo Extracting repository...
-    powershell -command "Expand-Archive -Path '%TEMP_ZIP%' -DestinationPath '%DESTINATION%' -Force"
+    powershell -command "Expand-Archive -Path '%TEMP%\shadermod-repo.zip' -DestinationPath '%DESTINATION%' -Force"
     
     :: Rename the extracted folder
     if exist "%DESTINATION%\Shader2-main" (
@@ -86,6 +87,33 @@ echo [OK] Repository obtained
 
 :: Navigate to the project
 cd /d "%DESTINATION%\Shader2"
+
+:: Check if gradlew.bat exists, if not download it
+echo Checking for Gradle Wrapper...
+if not exist "%CD%\gradlew.bat" (
+    echo Setting up Gradle Wrapper...
+    
+    :: Create gradle/wrapper directory
+    mkdir gradle\wrapper 2>nul
+    
+    :: Download gradle-wrapper.jar
+    echo Downloading gradle-wrapper.jar...
+    powershell -command "(New-Object Net.WebClient).DownloadFile('%GRADLE_WRAPPER_URL%', 'gradle\wrapper\gradle-wrapper.jar')"
+    
+    :: Create gradle-wrapper.properties
+    echo distributionBase=GRADLE_USER_HOME> gradle\wrapper\gradle-wrapper.properties
+    echo distributionPath=wrapper/dists>> gradle\wrapper\gradle-wrapper.properties
+    echo networkTimeout=10000>> gradle\wrapper\gradle-wrapper.properties
+    echo distributionUrl=https\://services.gradle.org/distributions/gradle-8.4-bin.zip>> gradle\wrapper\gradle-wrapper.properties
+    
+    :: Download gradlew.bat
+    echo Downloading gradlew.bat...
+    powershell -command "(New-Object Net.WebClient).DownloadFile('%GRADLE_WRAPPER_BAT_URL%', 'gradlew.bat')"
+    
+    echo [OK] Gradle Wrapper installed
+) else (
+    echo [OK] Gradle Wrapper already exists
+)
 
 :: Run Gradle build
 echo Building the mod (this may take 2-5 minutes on first run)...
@@ -118,7 +146,7 @@ mkdir "%MODS_FOLDER%" 2>nul
 copy /y "build\libs\shadermod-1.0.0.jar" "%MODS_FOLDER%\shadermod-1.0.0.jar"
 
 :: Clean up temp files
-del "%TEMP_ZIP%" 2>nul
+del "%TEMP%\shadermod-repo.zip" 2>nul
 
 echo.
 echo ============================================
