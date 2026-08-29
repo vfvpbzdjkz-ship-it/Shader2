@@ -13,7 +13,7 @@ echo.
 set "DESTINATION=%USERPROFILE%\Desktop\ShaderMod2"
 set "MODS_FOLDER=%USERPROFILE%\AppData\Roaming\PrismLauncher\instances\1.20.4\minecraft\mods"
 set "REPO_URL=https://github.com/vfvpbzdjkz-ship-it/Shader2"
-set "GRADLE_WRAPPER_URL=https://raw.githubusercontent.com/gradle/gradle/v8.4/gradle/wrapper/gradle-wrapper.jar"
+set "GRADLE_WRAPPER_JAR_URL=https://raw.githubusercontent.com/gradle/gradle/v8.4/gradle/wrapper/gradle-wrapper.jar"
 set "GRADLE_WRAPPER_BAT_URL=https://raw.githubusercontent.com/gradle/gradle/v8.4/gradle/wrapper/gradle-wrapper.bat"
 
 echo Checking prerequisites...
@@ -98,21 +98,61 @@ if not exist "%CD%\gradlew.bat" (
     
     :: Download gradle-wrapper.jar
     echo Downloading gradle-wrapper.jar...
-    powershell -command "(New-Object Net.WebClient).DownloadFile('%GRADLE_WRAPPER_URL%', 'gradle\wrapper\gradle-wrapper.jar')"
+    powershell -command "try { (New-Object Net.WebClient).DownloadFile('%GRADLE_WRAPPER_JAR_URL%', 'gradle\wrapper\gradle-wrapper.jar') } catch { Write-Error 'Failed to download gradle-wrapper.jar: $_' }"
+    
+    :: Verify the jar was downloaded
+    if not exist "gradle\wrapper\gradle-wrapper.jar" (
+        echo.
+        echo ERROR: Failed to download gradle-wrapper.jar!
+        echo Trying alternative download method...
+        
+        :: Try using curl if available
+        curl -L -o gradle\wrapper\gradle-wrapper.jar "%GRADLE_WRAPPER_JAR_URL%" 2>nul
+        
+        if not exist "gradle\wrapper\gradle-wrapper.jar" (
+            echo.
+            echo ERROR: Both download methods failed!
+            echo Please check your internet connection.
+            pause
+            exit /b 1
+        )
+    )
     
     :: Create gradle-wrapper.properties
-    echo distributionBase=GRADLE_USER_HOME> gradle\wrapper\gradle-wrapper.properties
-    echo distributionPath=wrapper/dists>> gradle\wrapper\gradle-wrapper.properties
-    echo networkTimeout=10000>> gradle\wrapper\gradle-wrapper.properties
-    echo distributionUrl=https\://services.gradle.org/distributions/gradle-8.4-bin.zip>> gradle\wrapper\gradle-wrapper.properties
+    (
+        echo distributionBase=GRADLE_USER_HOME
+        echo distributionPath=wrapper/dists
+        echo networkTimeout=10000
+        echo distributionUrl=https\://services.gradle.org/distributions/gradle-8.4-bin.zip
+    ) > gradle\wrapper\gradle-wrapper.properties
     
     :: Download gradlew.bat
     echo Downloading gradlew.bat...
-    powershell -command "(New-Object Net.WebClient).DownloadFile('%GRADLE_WRAPPER_BAT_URL%', 'gradlew.bat')"
+    powershell -command "try { (New-Object Net.WebClient).DownloadFile('%GRADLE_WRAPPER_BAT_URL%', 'gradlew.bat') } catch { Write-Error 'Failed to download gradlew.bat: $_' }"
+    
+    :: Verify gradlew.bat was downloaded
+    if not exist "gradlew.bat" (
+        echo.
+        echo ERROR: Failed to download gradlew.bat!
+        pause
+        exit /b 1
+    )
     
     echo [OK] Gradle Wrapper installed
 ) else (
     echo [OK] Gradle Wrapper already exists
+)
+
+:: Verify gradle-wrapper.jar exists before running
+echo Verifying Gradle Wrapper files...
+if not exist "gradle\wrapper\gradle-wrapper.jar" (
+    echo.
+    echo ERROR: gradle-wrapper.jar is missing!
+    echo The Gradle Wrapper is incomplete.
+    echo.
+    echo Solution: Delete %DESTINATION% and run this script again.
+    pause
+    exit /b 1
 )
 
 :: Run Gradle build
@@ -131,7 +171,7 @@ if not exist "build\libs\shadermod-1.0.0.jar" (
     echo Common fixes:
     echo - Make sure you have Java 17 JDK (not just JRE)
     echo - Wait longer for first build (it downloads many dependencies)
-    echo - Try running: gradlew.bat clean build
+    echo - Try running: cd %DESTINATION%\Shader2 && gradlew.bat clean build
     pause
     exit /b 1
 )
