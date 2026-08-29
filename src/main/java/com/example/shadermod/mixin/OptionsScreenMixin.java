@@ -1,6 +1,8 @@
 package com.example.shadermod.mixin;
 
+import com.example.shadermod.ShaderMod;
 import com.example.shadermod.ShaderSelectionScreen;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.OptionsScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -24,34 +26,35 @@ public abstract class OptionsScreenMixin extends Screen {
         at = @At("RETURN")
     )
     private void onInit(CallbackInfo ci) {
-        // Add "Shader Settings" button to the options screen
-        // We'll add it to the existing buttons list
+        System.out.println("[ShaderMod] >>> OptionsScreen init called - adding shader button");
         
         try {
-            // Get the buttons field from OptionsScreen
-            // This is a bit hacky but necessary since we can't directly access the buttons list
+            Minecraft mc = Minecraft.getInstance();
+            if (mc == null) {
+                System.err.println("[ShaderMod] >>> ERROR: Minecraft instance is null in OptionsScreenMixin");
+                return;
+            }
             
-            // Find the "Done" button and add our button next to it
+            // Calculate position - we want to add it near the bottom
             int buttonWidth = 150;
             int buttonHeight = 20;
             int x = this.width / 2 - buttonWidth / 2;
-            
-            // Try to find a good position - we'll place it near the bottom but above "Done"
             int y = this.height - 65; // Above the Done button
             
+            // Add the shader settings button
             this.addRenderableWidget(Button.builder(
                 Component.literal("Shader Settings"),
                 button -> {
-                    // Open the shader selection screen
-                    if (this.minecraft != null) {
-                        this.minecraft.setScreen(new ShaderSelectionScreen((Screen) (Object) this));
+                    System.out.println("[ShaderMod] >>> Shader Settings button clicked!");
+                    if (mc != null) {
+                        mc.setScreen(new ShaderSelectionScreen((Screen) (Object) this));
                     }
                 }
             ).pos(x, y).size(buttonWidth, buttonHeight).build());
             
-            System.out.println("[ShaderMod] Added Shader Settings button to Options screen");
+            System.out.println("[ShaderMod] >>> Shader Settings button added at (" + x + "," + y + ")");
         } catch (Exception e) {
-            System.err.println("[ShaderMod] Error adding Shader Settings button: " + e.getMessage());
+            System.err.println("[ShaderMod] >>> ERROR adding shader button: " + e.getMessage());
             e.printStackTrace();
         }
     }

@@ -6,21 +6,20 @@ license="MIT"
 modId="shadermod"
 version="1.0.0"
 displayName="ShaderMod 2"
-description="A NeoForge mod that adds custom GLSL shaders to Minecraft"
-logoFile=""
-credits="Created with NeoForge API"
+description="A NeoForge mod that adds custom GLSL shaders to Minecraft with a GUI selector"
 authors="VibeCode"
+credits="Created with NeoForge API"
 
 [[dependencies.shadermod]]
     modId="neoforge"
     mandatory=true
     versionRange="[20.4.167,)"
     ordering="NONE"
-    side="BOTH"
+    side="CLIENT"
 
 [[dependencies.shadermod]]
     modId="minecraft"
     mandatory=true
     versionRange="[1.20.4,1.21)"
     ordering="NONE"
-    side="BOTH"
+    side="CLIENT"

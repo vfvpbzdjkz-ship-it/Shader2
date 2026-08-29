@@ -1,6 +1,5 @@
 package com.example.shadermod;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -24,22 +23,45 @@ public class ShaderManager {
     private final Map<String, ShaderProgram> shaders = new HashMap<>();
     private ResourceManager resourceManager;
     
+    public ShaderManager() {
+        System.out.println("[ShaderMod] >>> ShaderManager constructor called");
+    }
+    
     public void initialize() {
-        this.resourceManager = Minecraft.getInstance().getResourceManager();
+        System.out.println("[ShaderMod] >>> Initializing ShaderManager...");
         
-        // Load built-in shaders from the mod's resources
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null) {
+            System.err.println("[ShaderMod] >>> ERROR: Minecraft instance is null!");
+            return;
+        }
+        
+        this.resourceManager = mc.getResourceManager();
+        if (this.resourceManager == null) {
+            System.err.println("[ShaderMod] >>> ERROR: ResourceManager is null!");
+            return;
+        }
+        
+        System.out.println("[ShaderMod] >>> ResourceManager obtained, loading shaders...");
+        
+        // Load built-in shaders
         loadShader("vibrant");
         loadShader("cel_shading");
         loadShader("pbr_basic");
         loadShader("ultra_realistic");
         
-        System.out.println("[ShaderMod] ShaderManager initialized with " + shaders.size() + " shaders");
+        System.out.println("[ShaderMod] >>> ShaderManager initialized with " + shaders.size() + " shaders");
     }
     
     public void loadShader(String name) {
+        System.out.println("[ShaderMod] >>> Loading shader: " + name);
+        
         try {
             ResourceLocation vertexShaderLoc = new ResourceLocation(ShaderMod.MODID, SHADER_PATH + "/" + name + ".vsh");
             ResourceLocation fragmentShaderLoc = new ResourceLocation(ShaderMod.MODID, SHADER_PATH + "/" + name + ".fsh");
+            
+            System.out.println("[ShaderMod] >>>   Vertex: " + vertexShaderLoc);
+            System.out.println("[ShaderMod] >>>   Fragment: " + fragmentShaderLoc);
             
             String vertexShader = loadShaderSource(vertexShaderLoc);
             String fragmentShader = loadShaderSource(fragmentShaderLoc);
@@ -47,28 +69,35 @@ public class ShaderManager {
             if (vertexShader != null && fragmentShader != null) {
                 ShaderProgram program = new ShaderProgram(name, vertexShader, fragmentShader);
                 shaders.put(name, program);
-                System.out.println("[ShaderMod] Successfully loaded shader: " + name);
+                System.out.println("[ShaderMod] >>>   SUCCESS: Shader loaded");
             } else {
-                System.err.println("[ShaderMod] Failed to load shader sources for: " + name);
-                System.err.println("[ShaderMod]   Vertex: " + (vertexShader != null ? "OK" : "MISSING"));
-                System.err.println("[ShaderMod]   Fragment: " + (fragmentShader != null ? "OK" : "MISSING"));
+                System.err.println("[ShaderMod] >>>   FAILED: Vertex=" + (vertexShader != null) + ", Fragment=" + (fragmentShader != null));
             }
         } catch (Exception e) {
-            System.err.println("[ShaderMod] Error loading shader " + name + ": " + e.getMessage());
+            System.err.println("[ShaderMod] >>>   ERROR loading shader " + name + ": " + e.getMessage());
             e.printStackTrace();
         }
     }
     
     private String loadShaderSource(ResourceLocation location) {
         try {
+            System.out.println("[ShaderMod] >>>     Trying to load: " + location);
+            
             InputStream stream = resourceManager.getResource(location).open();
+            if (stream == null) {
+                System.err.println("[ShaderMod] >>>     Stream is null for: " + location);
+                return null;
+            }
+            
             try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(stream, StandardCharsets.UTF_8)
             )) {
-                return reader.lines().collect(Collectors.joining("\n"));
+                String content = reader.lines().collect(Collectors.joining("\n"));
+                System.out.println("[ShaderMod] >>>     Loaded " + content.length() + " bytes from " + location);
+                return content;
             }
         } catch (IOException e) {
-            System.err.println("[ShaderMod] Failed to read shader file " + location + ": " + e.getMessage());
+            System.err.println("[ShaderMod] >>>     Failed to read " + location + ": " + e.getMessage());
             return null;
         }
     }
@@ -85,15 +114,15 @@ public class ShaderManager {
         ShaderProgram program = shaders.get(name);
         if (program != null) {
             program.use();
-            System.out.println("[ShaderMod] Applied shader: " + name);
+            System.out.println("[ShaderMod] >>> Applied shader: " + name);
         } else {
-            System.err.println("[ShaderMod] Cannot apply shader " + name + " - not found!");
+            System.err.println("[ShaderMod] >>> Cannot apply shader " + name + " - NOT FOUND! Available: " + shaders.keySet());
         }
     }
     
     public void releaseShader() {
         GL20.glUseProgram(0);
-        System.out.println("[ShaderMod] Released shader");
+        System.out.println("[ShaderMod] >>> Released shader (reset to 0)");
     }
     
     public void renderWithShader(String shaderName, Runnable renderTask) {
@@ -110,7 +139,7 @@ public class ShaderManager {
     public void cleanup() {
         shaders.values().forEach(ShaderProgram::cleanup);
         shaders.clear();
-        System.out.println("[ShaderMod] Cleaned up shaders");
+        System.out.println("[ShaderMod] >>> Cleaned up shaders");
     }
     
     public int getLoadedShaderCount() {
@@ -126,9 +155,13 @@ public class ShaderManager {
         
         public ShaderProgram(String name, String vertexSource, String fragmentSource) {
             this.name = name;
+            System.out.println("[ShaderMod] >>>   Compiling vertex shader for: " + name);
             this.vertexShaderId = compileShader(vertexSource, GL20.GL_VERTEX_SHADER);
+            System.out.println("[ShaderMod] >>>   Compiling fragment shader for: " + name);
             this.fragmentShaderId = compileShader(fragmentSource, GL20.GL_FRAGMENT_SHADER);
+            System.out.println("[ShaderMod] >>>   Linking program for: " + name);
             this.programId = linkProgram(this.vertexShaderId, this.fragmentShaderId);
+            System.out.println("[ShaderMod] >>>   Shader program created: ID=" + programId);
         }
         
         private int compileShader(String source, int type) {
@@ -138,7 +171,7 @@ public class ShaderManager {
             
             if (GL20.glGetShaderi(shaderId, GL20.GL_COMPILE_STATUS) == 0) {
                 String infoLog = GL20.glGetShaderInfoLog(shaderId);
-                System.err.println("[ShaderMod] Shader compilation error for " + name + ": " + infoLog);
+                System.err.println("[ShaderMod] >>>   Shader compilation error for " + name + ": " + infoLog);
                 GL20.glDeleteShader(shaderId);
                 throw new RuntimeException("Failed to compile shader: " + infoLog);
             }
@@ -154,7 +187,7 @@ public class ShaderManager {
             
             if (GL20.glGetProgrami(programId, GL20.GL_LINK_STATUS) == 0) {
                 String infoLog = GL20.glGetProgramInfoLog(programId);
-                System.err.println("[ShaderMod] Shader program linking error for " + name + ": " + infoLog);
+                System.err.println("[ShaderMod] >>>   Shader program linking error for " + name + ": " + infoLog);
                 GL20.glDeleteProgram(programId);
                 throw new RuntimeException("Failed to link shader program: " + infoLog);
             }

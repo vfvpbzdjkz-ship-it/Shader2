@@ -12,8 +12,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(GameRenderer.class)
 public abstract class ShaderRendererMixin {
     
-    // Flag to prevent multiple applications
-    private static boolean shaderApplied = false;
+    // Track the currently applied shader to avoid redundant applications
+    private static String currentShader = null;
     
     @Inject(
         method = "render",
@@ -22,28 +22,24 @@ public abstract class ShaderRendererMixin {
             target = "Lnet/minecraft/client/renderer/GameRenderer;setupOverlayRendering()V"
         )
     )
-    private void onRender(PoseStack poseStack, float partialTicks, long nanoTime, boolean renderLevel, CallbackInfo ci) {
-        // Only apply shader once per frame to avoid issues
-        if (shaderApplied) return;
-        shaderApplied = true;
-        
+    private void beforeOverlay(PoseStack poseStack, float partialTicks, long nanoTime, boolean renderLevel, CallbackInfo ci) {
         try {
-            ShaderMod mod = ShaderMod.getInstance();
-            if (mod != null && mod.getShaderManager() != null) {
-                ShaderConfig.ShaderType selected = ShaderConfig.getSelectedShader();
-                String shaderName = convertShaderType(selected);
-                
-                if (ShaderConfig.areShadersEnabled() && shaderName != null && !shaderName.equals("none")) {
-                    mod.getShaderManager().applyShader(shaderName);
+            ShaderConfig.ShaderType selected = ShaderConfig.getSelectedShader();
+            String shaderName = convertShaderType(selected);
+            
+            // Only apply if different from current
+            if (!shaderName.equals(currentShader)) {
+                if (ShaderConfig.areShadersEnabled() && !shaderName.equals("none")) {
+                    ShaderMod.getShaderManager().applyShader(shaderName);
+                    currentShader = shaderName;
                 } else {
-                    mod.getShaderManager().releaseShader();
+                    ShaderMod.getShaderManager().releaseShader();
+                    currentShader = "none";
                 }
             }
         } catch (Exception e) {
-            System.err.println("[ShaderMod] Error in shader renderer mixin: " + e.getMessage());
+            System.err.println("[ShaderMod] >>> Error in shader renderer (beforeOverlay): " + e.getMessage());
             e.printStackTrace();
-        } finally {
-            shaderApplied = false;
         }
     }
     
@@ -51,16 +47,14 @@ public abstract class ShaderRendererMixin {
         method = "render",
         at = @At("RETURN")
     )
-    private void onRenderEnd(PoseStack poseStack, float partialTicks, long nanoTime, boolean renderLevel, CallbackInfo ci) {
-        // Release shader at the end of rendering
+    private void afterRender(PoseStack poseStack, float partialTicks, long nanoTime, boolean renderLevel, CallbackInfo ci) {
         try {
-            ShaderMod mod = ShaderMod.getInstance();
-            if (mod != null && mod.getShaderManager() != null) {
-                // Only release if we're not using a shader or if rendering is done
-                mod.getShaderManager().releaseShader();
-            }
+            // Reset shader state at the end of rendering
+            // This prevents shaders from affecting the GUI
+            ShaderMod.getShaderManager().releaseShader();
+            currentShader = null;
         } catch (Exception e) {
-            System.err.println("[ShaderMod] Error releasing shader: " + e.getMessage());
+            System.err.println("[ShaderMod] >>> Error in shader renderer (afterRender): " + e.getMessage());
         }
     }
     
