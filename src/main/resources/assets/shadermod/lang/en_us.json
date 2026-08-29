@@ -1,0 +1,10 @@
+{
+  "shader.vibrant.name": "Vibrant Colors",
+  "shader.vibrant.description": "Enhances colors with increased saturation and subtle glow effects",
+  "shader.cel_shading.name": "Cel Shading",
+  "shader.cel_shading.description": "Creates a stylized cartoon/anime rendering effect with discrete shading levels",
+  "shadermod.title": "ShaderMod 2",
+  "shadermod.config.title": "Shader Configuration",
+  "shadermod.config.enabled": "Enable Shaders",
+  "shadermod.config.selected": "Selected Shader"
+}
