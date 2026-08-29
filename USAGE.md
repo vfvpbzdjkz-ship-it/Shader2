@@ -17,7 +17,7 @@ This document provides detailed information on using ShaderMod 2, including how 
 
 ## Understanding the Shaders
 
-ShaderMod 2 includes three distinct shaders, each designed for different visual experiences:
+ShaderMod 2 includes four distinct shaders, each designed for different visual experiences:
 
 ### 1. Vibrant Shader (`vibrant`)
 
@@ -112,6 +112,75 @@ ShaderMod 2 includes three distinct shaders, each designed for different visual 
 
 ---
 
+### 4. Ultra Realistic Shader (`ultra_realistic`)
+
+**Purpose:** Creates the most realistic and visually stunning rendering possible within Minecraft's constraints. This is the flagship shader that combines multiple advanced rendering techniques.
+
+**Visual Effects:**
+
+**Physically Based Rendering (PBR):**
+- **Cook-Torrance BRDF:** Industry-standard specular reflection model
+- **Trowbridge-Reitz GGX Distribution:** Accurate microfacet distribution for realistic material appearance
+- **Smith Geometry:** Proper shadowing and masking of microfacets
+- **Fresnel-Schlick Approximation:** Realistic reflection at grazing angles
+
+**Global Illumination Approximations:**
+- **Screen Space Reflections:** Dynamic reflections that respond to camera movement
+- **Ambient Occlusion:** Darkens crevices and corners where light doesn't reach
+- **Environment Lighting:** Simulated image-based lighting from sky and ground
+- **Sub-Surface Scattering:** Light penetration through translucent materials
+
+**Atmospheric Effects:**
+- **Distance Fog:** Realistic fog that increases with distance
+- **Height Fog:** Atmospheric haze that varies with elevation
+- **Dynamic Time-Based Variations:** Subtle changes over time for a living world
+
+**Material System:**
+- **Automatic Metallic Detection:** Detects metal blocks (gold, iron, etc.) and applies metallic properties
+- **Roughness Variation:** Different materials have appropriate roughness values
+- **Thickness-Based SSS:** Sub-surface scattering for organic materials
+
+**Advanced Lighting:**
+- **Physically Accurate Shadows:** Soft shadows with proper attenuation
+- **Specular Highlights:** Realistic reflections based on material properties
+- **Diffuse Component:** Lambertian diffuse with proper energy conservation
+
+**Post-Processing:**
+- **Gamma Correction:** Proper sRGB to linear space conversion
+- **Tone Mapping:** Ensures colors stay within valid ranges
+- **Dynamic Range:** Handles high dynamic range lighting
+
+**Best For:**
+- Players who want the most realistic visual experience
+- Screenshot artists creating cinematic scenes
+- Those who appreciate cutting-edge rendering techniques
+- Showcasing builds with maximum visual fidelity
+- Immersion-focused gameplay
+
+**Performance Impact:** High - This shader uses the most computationally intensive techniques
+
+**Technical Details:**
+- **BRDF:** Cook-Torrance with GGX distribution
+- **Geometry:** Smith's G1 * G1 (Schlick GGX)
+- **Fresnel:** Schlick approximation with material blending
+- **Shadows:** Soft shadow mapping with ambient occlusion
+- **Reflections:** Screen space with roughness-based blurring
+- **SSS:** Simple approximation for organic materials
+- **Fog:** Exponential distance fog with height variation
+- **Gamma:** 2.2 correction for proper sRGB handling
+
+**Material Properties:**
+- Metallic: Auto-detected (0.0-1.0)
+- Roughness: Auto-detected (0.1-0.8)
+- Thickness: For SSS (0.0-0.2)
+
+**Comparison to Other Shaders:**
+- **vs Vibrant:** Much more realistic lighting, but less color saturation
+- **vs Cel Shading:** Photorealistic instead of stylized
+- **vs PBR Basic:** Far more advanced with GI, reflections, and atmospheric effects
+
+---
+
 ## Activating Shaders
 
 ### Current Implementation
@@ -140,6 +209,9 @@ private void onRender(PoseStack poseStack, float partialTicks, long nanoTime, bo
         
         // Or apply PBR
         // manager.applyShader("pbr_basic");
+        
+        // Or apply Ultra Realistic
+        // manager.applyShader("ultra_realistic");
     }
 }
 ```
@@ -154,13 +226,13 @@ if (mod != null) {
     ShaderManager manager = mod.getShaderManager();
     
     // Check if a shader is available
-    if (manager.hasShader("vibrant")) {
+    if (manager.hasShader("ultra_realistic")) {
         // Apply it
-        manager.applyShader("vibrant");
+        manager.applyShader("ultra_realistic");
     }
     
     // Or use the renderWithShader method
-    manager.renderWithShader("vibrant", () -> {
+    manager.renderWithShader("ultra_realistic", () -> {
         // Your rendering code here
     });
 }
@@ -207,6 +279,15 @@ Each shader will have configurable parameters:
 - Shininess (1.0 - 100.0)
 - Gamma correction (1.0 - 3.0)
 
+**Ultra Realistic Shader:**
+- Roughness (0.0 - 1.0)
+- Metallic (0.0 - 1.0)
+- Ambient Occlusion strength (0.0 - 1.0)
+- Shadow softness (0.0 - 1.0)
+- Reflection quality (0.0 - 1.0)
+- SSS thickness (0.0 - 0.5)
+- Fog density (0.0 - 0.01)
+
 ---
 
 ## Performance Considerations
@@ -219,6 +300,7 @@ Each shader will have configurable parameters:
 | PBR Basic | Minimal | 2-5% | Low |
 | Vibrant | Minimal | 3-7% | Low |
 | Cel Shading | Moderate | 5-15% | Medium |
+| Ultra Realistic | High | 15-30% | High |
 
 *FPS reduction is approximate and depends on your hardware and Minecraft settings.
 
@@ -237,6 +319,7 @@ Each shader will have configurable parameters:
 | PBR Basic | Intel HD 4000 / GTX 650 | GTX 1050 / RX 560 |
 | Vibrant | Intel HD 4000 / GTX 650 | GTX 1050 / RX 560 |
 | Cel Shading | GTX 750 / RX 260 | GTX 1060 / RX 570 |
+| Ultra Realistic | GTX 960 / RX 460 | GTX 1070 / RX 580 |
 
 ---
 
@@ -339,19 +422,22 @@ The following uniforms are available to all shaders:
 
 ### Side-by-Side Comparison
 
-| Feature | Vanilla | PBR Basic | Vibrant | Cel Shading |
-|---------|---------|-----------|---------|-------------|
-| Color Saturation | Normal | Normal | +50% | Normal |
-| Contrast | Normal | Normal | +20% | Normal |
-| Lighting Model | Flat | PBR-like | Enhanced | Cel/Toon |
-| Specular Highlights | None | Yes | Subtle | Quantized |
-| Shadows | None | Simulated | None | None |
-| Glow Effects | None | None | Yes | None |
-| Edge Detection | None | None | None | Yes |
-| Color Quantization | None | None | None | Yes |
-| Dynamic Effects | None | None | Pulse | Time-based |
-| Realism | Medium | High | Low | Low |
-| Style | Realistic | Realistic | Enhanced | Cartoon |
+| Feature | Vanilla | PBR Basic | Vibrant | Cel Shading | Ultra Realistic |
+|---------|---------|-----------|---------|-------------|----------------|
+| Color Saturation | Normal | Normal | +50% | Normal | Normal |
+| Contrast | Normal | Normal | +20% | Normal | High |
+| Lighting Model | Flat | PBR-like | Enhanced | Cel/Toon | Full PBR |
+| Specular Highlights | None | Yes | Subtle | Quantized | Physically Accurate |
+| Shadows | None | Simulated | None | None | Soft Shadows |
+| Glow Effects | None | None | Yes | None | Fresnel |
+| Edge Detection | None | None | None | Yes | None |
+| Color Quantization | None | None | None | Yes | None |
+| Dynamic Effects | None | None | Pulse | Time-based | Atmospheric |
+| Screen Space Reflections | None | None | None | None | Yes |
+| Sub-Surface Scattering | None | None | None | None | Yes |
+| Gamma Correction | None | Yes | Yes | Yes | Yes |
+| Realism | Medium | High | Low | Low | Very High |
+| Style | Realistic | Realistic | Enhanced | Cartoon | Photorealistic |
 
 ### Recommended Use Cases
 
@@ -360,13 +446,16 @@ The following uniforms are available to all shaders:
 | General gameplay | PBR Basic |
 | Exploration | Vibrant |
 | Building/Architecture | PBR Basic |
-| Screenshots (realistic) | PBR Basic |
+| Screenshots (realistic) | Ultra Realistic |
 | Screenshots (artistic) | Vibrant or Cel Shading |
 | Streaming (unique look) | Cel Shading |
 | Streaming (enhanced) | Vibrant |
+| Streaming (cinematic) | Ultra Realistic |
 | PvP | PBR Basic or Vibrant |
 | Redstone builds | Vibrant |
 | Adventure maps | Cel Shading |
+| Cinematic scenes | Ultra Realistic |
+| Immersion | Ultra Realistic |
 
 ---
 

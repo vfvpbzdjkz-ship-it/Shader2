@@ -31,6 +31,7 @@ public class ShaderManager {
         loadShader("vibrant");
         loadShader("cel_shading");
         loadShader("pbr_basic");
+        loadShader("ultra_realistic");
     }
     
     public void loadShader(String name) {

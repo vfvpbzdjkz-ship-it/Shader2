@@ -5,6 +5,8 @@
   "shader.cel_shading.description": "Creates a stylized cartoon/anime rendering effect with discrete shading levels",
   "shader.pbr_basic.name": "PBR Basic",
   "shader.pbr_basic.description": "Provides standard physically-based rendering with realistic lighting and shadows",
+  "shader.ultra_realistic.name": "Ultra Realistic",
+  "shader.ultra_realistic.description": "Advanced PBR with global illumination, screen space reflections, and atmospheric effects",
   "shadermod.title": "ShaderMod 2",
   "shadermod.config.title": "Shader Configuration",
   "shadermod.config.enabled": "Enable Shaders",
